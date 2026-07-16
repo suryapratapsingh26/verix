@@ -30,6 +30,11 @@ from schemas import AgentAction
 
 action = AgentAction.model_validate_json(raw_text)
 print("\nVALIDATED SUCCESSFULLY:")
+from tools import calculator
+
+if action.tool.value == "calculator":
+    result = calculator(action.tool_input)
+    print(f"\nTOOL EXECUTED. Result: {result}")
 print(f"Thought: {action.thought}")
 print(f"Tool: {action.tool}")
 print(f"Tool Input: {action.tool_input}")
