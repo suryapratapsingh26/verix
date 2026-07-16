@@ -26,9 +26,10 @@ raw_text = response.choices[0].message.content
 print("RAW OUTPUT:")
 print(raw_text)
 
-# Try to parse it as JSON
-parsed = json.loads(raw_text)
-print("\nPARSED SUCCESSFULLY:")
-print(f"Thought: {parsed['thought']}")
-print(f"Tool: {parsed['tool']}")
-print(f"Tool Input: {parsed['tool_input']}")
+from schemas import AgentAction
+
+action = AgentAction.model_validate_json(raw_text)
+print("\nVALIDATED SUCCESSFULLY:")
+print(f"Thought: {action.thought}")
+print(f"Tool: {action.tool}")
+print(f"Tool Input: {action.tool_input}")
