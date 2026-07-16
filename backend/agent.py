@@ -2,9 +2,8 @@ import json
 from groq import Groq
 import os
 from dotenv import load_dotenv
-
 from schemas import AgentAction
-from tools import calculator
+from tools import calculator, web_search
 
 load_dotenv()
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -12,11 +11,12 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 SYSTEM_PROMPT = """You are a task-solving assistant. Given a task, decide ONE action at a time.
 
 Available tools:
+- web_search: search the web for information. input = a search query.
 - calculator: evaluate a math expression. input = the expression, e.g. "42*3.5"
 - finish: call this when you have the final answer. input = your final answer.
 
 Respond with ONLY a JSON object, no other text, in exactly this shape:
-{"thought": "<your reasoning>", "tool": "<one of calculator|finish>", "tool_input": "<the input>"}
+{"thought": "<your reasoning>", "tool": "<one of web_search|calculator|finish>", "tool_input": "<the input>"}
 """
 
 def run_agent(task: str, max_steps: int = 5):
@@ -46,6 +46,8 @@ def run_agent(task: str, max_steps: int = 5):
         # ACT: run the tool
         if action.tool.value == "calculator":
             result = calculator(action.tool_input)
+        elif action.tool.value == "web_search":
+            result = web_search(action.tool_input)
         else:
             result = "ERROR: unknown tool"
 
@@ -60,4 +62,4 @@ def run_agent(task: str, max_steps: int = 5):
 
 
 if __name__ == "__main__":
-    run_agent("What is 25 times 4, then add 10 to that result?")
+    run_agent("Who is the current CEO of Anthropic, and what is 12 times 8?")
