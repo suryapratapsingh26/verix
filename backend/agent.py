@@ -24,6 +24,7 @@ def run_agent(task: str, max_steps: int = 5):
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Task: {task}"},
     ]
+    retries_count = 0
 
     for step in range(1, max_steps + 1):
         print(f"\n--- Step {step} ---")
@@ -34,16 +35,27 @@ def run_agent(task: str, max_steps: int = 5):
             temperature=0.2,
         )
         raw_text = response.choices[0].message.content
-        action = AgentAction.model_validate_json(raw_text)
+
+        try:
+            action = AgentAction.model_validate_json(raw_text)
+        except Exception as e:
+            print(f"PARSE FAILED: {e}")
+            retries_count += 1
+            messages.append({"role": "assistant", "content": raw_text})
+            messages.append({
+                "role": "user",
+                "content": f"Your last response could not be parsed as valid JSON ({e}). Respond again with ONLY a valid JSON object in the exact format specified."
+            })
+            continue
 
         print(f"Thought: {action.thought}")
         print(f"Tool: {action.tool.value} | Input: {action.tool_input}")
 
         if action.tool.value == "finish":
             print(f"\nFINAL ANSWER: {action.tool_input}")
-            return action.tool_input
+            print(f"Retries needed: {retries_count}")
+            return {"answer": action.tool_input, "retries": retries_count, "steps": step}
 
-        # ACT: run the tool
         if action.tool.value == "calculator":
             result = calculator(action.tool_input)
         elif action.tool.value == "web_search":
@@ -53,12 +65,11 @@ def run_agent(task: str, max_steps: int = 5):
 
         print(f"Observation: {result}")
 
-        # append this round to the conversation so the model sees it next time
         messages.append({"role": "assistant", "content": raw_text})
         messages.append({"role": "user", "content": f"Observation: {result}"})
 
-    print("\nStopped: reached max steps without finishing.")
-    return None
+    print(f"\nStopped: reached max steps without finishing. Retries: {retries_count}")
+    return {"answer": None, "retries": retries_count, "steps": max_steps}
 
 
 if __name__ == "__main__":
