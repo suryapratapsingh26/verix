@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from schemas import AgentAction
 from tools import calculator, web_search
+from evaluator import judge_answer
 
 load_dotenv()
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -54,7 +55,17 @@ def run_agent(task: str, max_steps: int = 5):
         if action.tool.value == "finish":
             print(f"\nFINAL ANSWER: {action.tool_input}")
             print(f"Retries needed: {retries_count}")
-            return {"answer": action.tool_input, "retries": retries_count, "steps": step}
+
+            judgement = judge_answer(task, action.tool_input)
+            print(f"Judge score: {judgement.get('score')}/5 - {judgement.get('reasoning')}")
+
+            return {
+                "answer": action.tool_input,
+                "retries": retries_count,
+                "steps": step,
+                "judge_score": judgement.get("score"),
+                "judge_reasoning": judgement.get("reasoning"),
+            }
 
         if action.tool.value == "calculator":
             result = calculator(action.tool_input)
