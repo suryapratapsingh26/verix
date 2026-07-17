@@ -1,4 +1,5 @@
 import json
+import time
 from groq import Groq
 import os
 from dotenv import load_dotenv
@@ -26,6 +27,8 @@ def run_agent(task: str, max_steps: int = 5):
         {"role": "user", "content": f"Task: {task}"},
     ]
     retries_count = 0
+    total_tokens = 0
+    start_time = time.time()
 
     for step in range(1, max_steps + 1):
         print(f"\n--- Step {step} ---")
@@ -36,6 +39,7 @@ def run_agent(task: str, max_steps: int = 5):
             temperature=0.2,
         )
         raw_text = response.choices[0].message.content
+        total_tokens += response.usage.total_tokens if response.usage else 0
 
         try:
             action = AgentAction.model_validate_json(raw_text)
@@ -59,12 +63,20 @@ def run_agent(task: str, max_steps: int = 5):
             judgement = judge_answer(task, action.tool_input)
             print(f"Judge score: {judgement.get('score')}/5 - {judgement.get('reasoning')}")
 
+            latency = round(time.time() - start_time, 2)
+            cost_usd = round((total_tokens / 1_000_000) * 0.59, 6)  # Llama 3.3 70B ~$0.59/1M tokens on Groq
+
+            print(f"Total tokens: {total_tokens} | Latency: {latency}s | Est. cost: ${cost_usd}")
+
             return {
                 "answer": action.tool_input,
                 "retries": retries_count,
                 "steps": step,
                 "judge_score": judgement.get("score"),
                 "judge_reasoning": judgement.get("reasoning"),
+                "total_tokens": total_tokens,
+                "latency_seconds": latency,
+                "cost_usd": cost_usd,
             }
 
         if action.tool.value == "calculator":
