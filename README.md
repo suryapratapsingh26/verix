@@ -1,4 +1,4 @@
-About
+About ![Verix demo](demo.gif)
 
 Verix is a self-correcting, tool-calling AI agent with a built-in evaluation layer. It plans multi-step tasks, executes them with real tools, catches and recovers from its own failures, and automatically grades every run for correctness, cost, and latency.
 
