@@ -1,6 +1,7 @@
 import json
 import time
 from groq import Groq
+from storage import save_run
 import os
 from dotenv import load_dotenv
 from schemas import AgentAction
@@ -64,11 +65,11 @@ def run_agent(task: str, max_steps: int = 5):
             print(f"Judge score: {judgement.get('score')}/5 - {judgement.get('reasoning')}")
 
             latency = round(time.time() - start_time, 2)
-            cost_usd = round((total_tokens / 1_000_000) * 0.59, 6)  # Llama 3.3 70B ~$0.59/1M tokens on Groq
+            cost_usd = round((total_tokens / 1_000_000) * 0.59, 6)
 
             print(f"Total tokens: {total_tokens} | Latency: {latency}s | Est. cost: ${cost_usd}")
 
-            return {
+            result = {
                 "answer": action.tool_input,
                 "retries": retries_count,
                 "steps": step,
@@ -78,6 +79,8 @@ def run_agent(task: str, max_steps: int = 5):
                 "latency_seconds": latency,
                 "cost_usd": cost_usd,
             }
+            save_run(task, result)
+            return result
 
         if action.tool.value == "calculator":
             result = calculator(action.tool_input)
